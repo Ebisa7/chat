@@ -41,23 +41,6 @@
         button:hover {
             background-color: #0056b3;
         }
-        #googleSignInButton {
-            background-color: white;
-            color: #555;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 10px;
-            cursor: pointer;
-        }
-        #googleSignInButton img {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-        }
         .chat-box {
             max-height: 300px;
             overflow-y: auto;
@@ -82,10 +65,6 @@
         <input type="password" id="password" placeholder="Enter your password" />
         <button id="signInButton">Sign In</button>
         <p>Don't have an account? <a href="#" id="signUpLink">Sign Up</a></p>
-        <button id="googleSignInButton">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
-            Continue with Google
-        </button>
     </div>
 
     <div class="container" id="signUpContainer" style="display:none;">
@@ -107,10 +86,9 @@
     </div>
 
     <script type="module">
-        // Import the necessary Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-        import { getDatabase, ref, onChildAdded, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
         // Firebase configuration
         const firebaseConfig = {
@@ -126,27 +104,12 @@
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getDatabase(app);
+        const auth = getAuth(app);
 
         let userName = "";
 
-        // Google Sign-In Function
-        const googleSignIn = () => {
-            const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider)
-                .then((result) => {
-                    const user = result.user;
-                    document.getElementById("authContainer").style.display = "none";
-                    document.getElementById("chatContainer").style.display = "block";
-                    listenForMessages();
-                })
-                .catch((error) => {
-                    alert("Error: " + error.message);
-                });
-        };
-
-        // Regular Sign-In Function
+        // Sign In Function
         const signIn = () => {
             const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value.trim();
@@ -156,16 +119,14 @@
                     document.getElementById("chatContainer").style.display = "block";
                     listenForMessages();
                 })
-                .catch((error) => {
-                    alert("Error: " + error.message);
-                });
+                .catch((error) => alert("Error: " + error.message));
         };
 
-        // Sign-Up Function
+        // Sign Up Function
         const signUp = () => {
+            const username = document.getElementById("username").value.trim();
             const email = document.getElementById("signUpEmail").value.trim();
             const password = document.getElementById("signUpPassword").value.trim();
-            const username = document.getElementById("username").value.trim();
             createUserWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     userName = username;
@@ -173,12 +134,9 @@
                     document.getElementById("chatContainer").style.display = "block";
                     listenForMessages();
                 })
-                .catch((error) => {
-                    alert("Error: " + error.message);
-                });
+                .catch((error) => alert("Error: " + error.message));
         };
 
-        // Listen for messages in the database
         const listenForMessages = () => {
             const chatBox = document.getElementById("chatBox");
             const messagesRef = ref(db, "messages");
@@ -192,14 +150,34 @@
             });
         };
 
-        // Event listeners
+        document.getElementById("sendMessageButton").addEventListener("click", () => {
+            const input = document.getElementById("messageInput");
+            const messageText = input.value.trim();
+            if (messageText) {
+                const messagesRef = ref(db, "messages");
+                push(messagesRef, { sender: userName, text: messageText });
+                input.value = "";
+            } else {
+                alert("Please enter a message!");
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById("authContainer").style.display = "none";
+                document.getElementById("chatContainer").style.display = "block";
+                listenForMessages();
+            }
+        });
+
         document.getElementById("signInButton").addEventListener("click", signIn);
         document.getElementById("signUpButton").addEventListener("click", signUp);
-        document.getElementById("googleSignInButton").addEventListener("click", googleSignIn);
+
         document.getElementById("signUpLink").addEventListener("click", () => {
             document.getElementById("authContainer").style.display = "none";
             document.getElementById("signUpContainer").style.display = "block";
         });
+
         document.getElementById("signInLink").addEventListener("click", () => {
             document.getElementById("signUpContainer").style.display = "none";
             document.getElementById("authContainer").style.display = "block";
