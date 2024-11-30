@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #googleSignInButton {
+            background-color: white;
+            color: #555;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        #googleSignInButton img {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        .chat-box {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .sender {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="authContainer">
+        <h1>Sign In</h1>
+        <input type="email" id="email" placeholder="Enter your email" />
+        <input type="password" id="password" placeholder="Enter your password" />
+        <button id="signInButton">Sign In</button>
+        <p>Don't have an account? <a href="#" id="signUpLink">Sign Up</a></p>
+        <button id="googleSignInButton">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+            Continue with Google
+        </button>
+    </div>
+
+    <div class="container" id="signUpContainer" style="display:none;">
+        <h1>Sign Up</h1>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <input type="email" id="signUpEmail" placeholder="Enter your email" />
+        <input type="password" id="signUpPassword" placeholder="Enter your password" />
+        <button id="signUpButton">Sign Up</button>
+        <p>Already have an account? <a href="#" id="signInLink">Sign In</a></p>
+    </div>
+
+    <div class="container" id="chatContainer" style="display:none;">
+        <h1>Chat Application</h1>
+        <div id="chatInterface">
+            <div class="chat-box" id="chatBox"></div>
+            <input type="text" id="messageInput" placeholder="Type a message" />
+            <button id="sendMessageButton">Send</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the necessary Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getDatabase, ref, onChildAdded, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX3g8wWxcTtwFDsJNJVcjUDIGxMd1L0Rk",
+            authDomain: "mytestapp-f6913.firebaseapp.com",
+            databaseURL: "https://mytestapp-f6913-default-rtdb.firebaseio.com",
+            projectId: "mytestapp-f6913",
+            storageBucket: "mytestapp-f6913.appspot.com",
+            messagingSenderId: "300150696072",
+            appId: "1:300150696072:web:1e29cb5a813d004018573d",
+            measurementId: "G-PPDR4TBQF5"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let userName = "";
+
+        // Google Sign-In Function
+        const googleSignIn = () => {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    const user = result.user;
+                    document.getElementById("authContainer").style.display = "none";
+                    document.getElementById("chatContainer").style.display = "block";
+                    listenForMessages();
+                })
+                .catch((error) => {
+                    alert("Error: " + error.message);
+                });
+        };
+
+        // Regular Sign-In Function
+        const signIn = () => {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    document.getElementById("authContainer").style.display = "none";
+                    document.getElementById("chatContainer").style.display = "block";
+                    listenForMessages();
+                })
+                .catch((error) => {
+                    alert("Error: " + error.message);
+                });
+        };
+
+        // Sign-Up Function
+        const signUp = () => {
+            const email = document.getElementById("signUpEmail").value.trim();
+            const password = document.getElementById("signUpPassword").value.trim();
+            const username = document.getElementById("username").value.trim();
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    userName = username;
+                    document.getElementById("signUpContainer").style.display = "none";
+                    document.getElementById("chatContainer").style.display = "block";
+                    listenForMessages();
+                })
+                .catch((error) => {
+                    alert("Error: " + error.message);
+                });
+        };
+
+        // Listen for messages in the database
+        const listenForMessages = () => {
+            const chatBox = document.getElementById("chatBox");
+            const messagesRef = ref(db, "messages");
+            onChildAdded(messagesRef, (snapshot) => {
+                const message = snapshot.val();
+                const messageElement = document.createElement("div");
+                messageElement.classList.add("message");
+                messageElement.innerHTML = `<span class="sender">${message.sender}:</span> ${message.text}`;
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        };
+
+        // Event listeners
+        document.getElementById("signInButton").addEventListener("click", signIn);
+        document.getElementById("signUpButton").addEventListener("click", signUp);
+        document.getElementById("googleSignInButton").addEventListener("click", googleSignIn);
+        document.getElementById("signUpLink").addEventListener("click", () => {
+            document.getElementById("authContainer").style.display = "none";
+            document.getElementById("signUpContainer").style.display = "block";
+        });
+        document.getElementById("signInLink").addEventListener("click", () => {
+            document.getElementById("signUpContainer").style.display = "none";
+            document.getElementById("authContainer").style.display = "block";
+        });
+    </script>
+</body>
+</html>
