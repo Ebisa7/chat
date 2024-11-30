@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #2c3e50;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+           
+            width: 90%;
+            max-width: 400px;
+            color: #ecf0f1;
+        }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #7f8c8d;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #2980b9;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1abc9c;
+        }
+        a {
+            color: #1abc9c;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sign In Container -->
+    <div class="container" id="authContainer">
+        <h1>Sign In</h1>
+        <input type="email" id="email" placeholder="Enter your email" />
+        <input type="password" id="password" placeholder="Enter your password" />
+        <button id="signInButton">Sign In</button>
+        <p>Don't have an account? <a id="signUpLink">Sign Up</a></p>
+    </div>
+
+    <!-- Sign Up Container -->
+    <div class="container" id="signUpContainer" style="display:none;">
+        <h1>Sign Up</h1>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <input type="email" id="signUpEmail" placeholder="Enter your email" />
+        <input type="password" id="signUpPassword" placeholder="Enter your password" />
+        <button id="signUpButton">Sign Up</button>
+        <p>Already have an account? <a id="signInLink">Sign In</a></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX3g8wWxcTtwFDsJNJVcjUDIGxMd1L0Rk",
+            authDomain: "mytestapp-f6913.firebaseapp.com",
+            databaseURL: "https://mytestapp-f6913-default-rtdb.firebaseio.com",
+            projectId: "mytestapp-f6913",
+            storageBucket: "mytestapp-f6913.firebasestorage.app",
+            messagingSenderId: "300150696072",
+            appId: "1:300150696072:web:1e29cb5a813d004018573d",
+            measurementId: "G-PPDR4TBQF5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        let userName = "";
+
+        // Helper to switch visibility of containers
+        const toggleContainers = (authVisible, signUpVisible) => {
+            document.getElementById("authContainer").style.display = authVisible ? "block" : "none";
+            document.getElementById("signUpContainer").style.display = signUpVisible ? "block" : "none";
+        };
+
+        // Sign In
+        const signIn = () => {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    // Redirect to index.html after successful sign-in
+                    window.location.href = "index.html"; // Redirect to index.html
+                })
+                .catch((error) => alert(`Sign In Error: ${error.message}`));
+        };
+
+        // Sign Up
+        const signUp = () => {
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("signUpEmail").value.trim();
+            const password = document.getElementById("signUpPassword").value.trim();
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    userName = username;
+                    // Redirect to index.html after successful sign-up
+                    window.location.href = "index.html"; // Redirect to index.html
+                })
+                .catch((error) => alert(`Sign Up Error: ${error.message}`));
+        };
+
+        // Listen for Authentication State Changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userName = user.displayName || "Anonymous";
+                // Redirect to index.html if already signed in
+                window.location.href = "index.html"; // Redirect to index.html
+            } else {
+                toggleContainers(true, false); // Show the sign-in container
+            }
+        });
+
+        // Event Listeners
+        document.getElementById("signInButton").addEventListener("click", signIn);
+        document.getElementById("signUpButton").addEventListener("click", signUp);
+        document.getElementById("signUpLink").addEventListener("click", () => toggleContainers(false, true));
+        document.getElementById("signInLink").addEventListener("click", () => toggleContainers(true, false));
+    </script>
+</body>
+</html>
